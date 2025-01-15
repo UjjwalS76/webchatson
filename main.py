@@ -47,8 +47,12 @@ def initialize_chatbot(splits):
         llm = ChatGoogleGenerativeAI(
             model="gemini-pro",
             temperature=0.7,
-            top_p=0.85,
-            top_k=40,
+            safety_settings={
+                "HARM_CATEGORY_HARASSMENT": "BLOCK_NONE",
+                "HARM_CATEGORY_HATE_SPEECH": "BLOCK_NONE",
+                "HARM_CATEGORY_SEXUALLY_EXPLICIT": "BLOCK_NONE",
+                "HARM_CATEGORY_DANGEROUS_CONTENT": "BLOCK_NONE",
+            }
         )
         
         memory = ConversationBufferMemory(
