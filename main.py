@@ -60,7 +60,7 @@ def initialize_chatbot(splits):
         qa = ConversationalRetrievalChain.from_llm(
             llm=llm,
             retriever=vectorstore.as_retriever(
-                search_kwargs={"k": 3}  # Return top 3 most relevant chunks
+                search_kwargs={"k": 3}
             ),
             memory=memory,
             verbose=True
@@ -85,45 +85,53 @@ with st.sidebar:
     - LangChain for the framework
     """)
 
-# URL input
-url = st.text_input("Enter website URL:", "https://www.buildfastwithai.com/")
+# URL input section
+url = st.text_input("Enter website URL:", placeholder="Enter URL and click Load Website")
+load_button = st.button("Load Website")
 
-if url:
-    if "qa_chain" not in st.session_state:
-        with st.spinner("Processing website content..."):
-            splits = load_and_process_website(url)
-            if splits:
-                qa_chain = initialize_chatbot(splits)
-                if qa_chain:
-                    st.session_state.qa_chain = qa_chain
-                    st.success("Website processed! You can now ask questions.")
-                else:
-                    st.error("Failed to initialize chatbot. Please check your API key and try again.")
-
-    # Chat interface
+if load_button and url:
+    # Reset session state if a new website is loaded
     if "qa_chain" in st.session_state:
-        if prompt := st.chat_input("Ask a question about the website"):
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            
-            with st.spinner("Thinking..."):
-                try:
-                    response = st.session_state.qa_chain({"question": prompt})
-                    st.session_state.messages.append({"role": "assistant", "content": response["answer"]})
-                except Exception as e:
-                    st.error(f"Error generating response: {str(e)}")
+        del st.session_state.qa_chain
+        st.session_state.messages = []
+    
+    with st.spinner("Processing website content..."):
+        splits = load_and_process_website(url)
+        if splits:
+            qa_chain = initialize_chatbot(splits)
+            if qa_chain:
+                st.session_state.qa_chain = qa_chain
+                st.success("Website processed! You can now ask questions.")
+            else:
+                st.error("Failed to initialize chatbot. Please check your API key and try again.")
+elif load_button and not url:
+    st.warning("Please enter a URL first!")
 
-        # Display chat history
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
+# Chat interface
+if "qa_chain" in st.session_state:
+    if prompt := st.chat_input("Ask a question about the website"):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        
+        with st.spinner("Thinking..."):
+            try:
+                response = st.session_state.qa_chain({"question": prompt})
+                st.session_state.messages.append({"role": "assistant", "content": response["answer"]})
+            except Exception as e:
+                st.error(f"Error generating response: {str(e)}")
+
+    # Display chat history
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
 
 # Add footer with instructions
 st.markdown("---")
 st.markdown("""
 ### How to use:
-1. Enter a website URL
-2. Wait for the content to be processed
-3. Ask questions about the website content
+1. Enter a website URL in the input field
+2. Click the 'Load Website' button
+3. Wait for the content to be processed
+4. Ask questions about the website content
 
 Note: Make sure you have set up your Google API key in Streamlit secrets.
 """)
